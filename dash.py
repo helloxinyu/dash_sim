@@ -28,6 +28,7 @@ class Dash:
         self.chunk_index = 1
         self.sim_inteval = 0.1
         self.finished = 0
+        self.max_buffer = 40
         self.throughput = netspeed.Throughput(log_dir)
 
     def __del__(self):
@@ -41,7 +42,11 @@ class Dash:
         self.time = self.time + self.sim_inteval
         self.buffer_len = self.buffer_len - self.sim_inteval
         self.last_isempty = self.isempty
-        
+            
+        if self.buffer_len >= self.max_buffer - self.segment_len:
+            #self.log("Sleep " + str(self.sim_inteval) + 's')
+            return
+       
         if self.buffer_len <= 0:
             self.buffer_len = 0
             self.log("Buffer Dry Out!")
@@ -53,6 +58,8 @@ class Dash:
             self.buffer_empty_count = self.buffer_empty_count + 1
         #print self.isdownloading, self.can_download
         #time.sleep(0.5)
+        
+
         if self.can_download == 1:
             self.chunk_downloaded = self.chunk_downloaded + self.sim_inteval * self.last_netspeed
             #print self.chunk_downloaded, self.chunk_size
@@ -67,6 +74,7 @@ class Dash:
             else:
                 #pass
                 self.isdownloading = 1
+        
 
         tmp_bps = self.mpd["bitrates"][0]
         chunk_num = len(self.mpd[tmp_bps])
