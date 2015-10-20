@@ -24,9 +24,9 @@ class Dash:
         self.netspeed = 0
         self.last_netspeed = 0
         self.min_buffer_time = self.mpd["min_buffer"]
-        self.segmenet_len = self.mpd["seglen"]
-        self.chunk_index = 0
-        self.sim_inteval = 1
+        self.segment_len = self.mpd["seglen"]
+        self.chunk_index = 1
+        self.sim_inteval = 0.1
         self.finished = 0
         self.throughput = netspeed.Throughput(log_dir)
 
@@ -61,7 +61,7 @@ class Dash:
                 self.log(str(self.chunk_index) + " Downloaded!")
                 self.chunk_index = self.chunk_index + 1
                 self.chunk_downloaded = 0
-                self.buffer_len = self.buffer_len + self.segmenet_len
+                self.buffer_len = self.buffer_len + self.segment_len
                 self.log("Buffer Level: " + str(self.buffer_len))
                 self.can_download = 0
             else:
@@ -91,18 +91,20 @@ class Dash:
             return False
 
     def select(self, rate):
+        #the rate must be index
         self.can_download = 1
         rate = int(rate)
         if rate < 1:
             rate = 1
         if rate >= len(self.mpd["bitrates"]):
             rate = len(self.mpd["bitrates"])
+        self.quality = rate
         if rate < 100:
             rate = self.mpd["bitrates"][rate - 1]
         
         self.last_bitrate = self.bitrate
         self.bitrate = rate
-        self.log("Begin Download: " + str(self.chunk_index) + ", bitrate: " + str(self.bitrate))
+        self.log("Begin Download: " + str(self.chunk_index) + ", bitrate: " + str(self.bitrate) + ", quality: " + str(self.quality)  )
         if (self.last_bitrate != self.bitrate):
             self.switch_count = self.switch_count + 1
             self.log(str(self.chunk_index) + "Rate switched!")

@@ -13,8 +13,10 @@ def Init(dash):
     while init_size > 0:
         init_size = init_size - dash.sim_inteval * dash.get_throughput()
         dash.time = dash.time + dash.sim_inteval
-    dash.buffer_len = dash.min_buffer_time
-    dash.chunk_index = 1
+    dash.log(str(1) + " Downloaded!")
+    dash.buffer_len = dash.segment_len
+    dash.log("Buffer Level: " + str(dash.buffer_len))
+    dash.chunk_index = dash.chunk_index + 1
     dash.select(1)
 
 def Demo(mpd_path, log_path):
@@ -60,19 +62,80 @@ def BBA(dash):
     dash.select(new_quality)
 	
 def algorithm1(dash):
-    now_T = dash.get_throughput() # must call this function, 
-    now_quality = dash.quality    # must be > 0
-    now_buffer_len = dash.buffer_len
-    next_chunks_size_of_specific_quality = dash.get_chunks_size()
-    dash.select(16)
+    r = 5.0
+    cu = 20.0
+    T = dash.get_throughput()
+    quality = dash.quality
+    buffer_len = dash.buffer_len
+    new_quality = quality
+    max_quality = len(dash.mpd["bitrates"])
+    next_chunks_size = dash.get_chunks_size()
+    duration = dash.segment_len
+
+    ref = 1
+    for i in range(1, max_quality):
+        if next_chunks_size[i] / duration > T:
+            ref = i - 1
+            break
+    
+    if buffer_len <= r :
+        for i in range(1, max_quality):
+            if next_chunks_size[i] > (duration - buffer_len) * T:
+                tmp = i - 1
+                break
+        new_quality = max(tmp,1)
+    elif buffer_len >= (r + cu) :
+        new_quality = max_quality
+    else:
+        new_quality = ref
+
+    dash.select(new_quality)
+
+def algorithm2(dash):
+    r = 8.0
+    cu = 20.0
+    T = dash.get_throughput()
+    quality = dash.quality
+    buffer_len = dash.buffer_len
+    new_quality = quality
+    max_quality = len(dash.mpd["bitrates"])
+    next_chunks_size = dash.get_chunks_size()
+    duration = dash.segment_len
+
+    ref = 1
+    for i in range(1, max_quality):
+        if next_chunks_size[i] / duration > T:
+            ref = i - 1
+            break
+    
+    if buffer_len <= r :
+        ref = max(ref-1,1)
+        if ref < quality:
+            for i in range(1, max_quality):
+                if next_chunks_size[i] > (duration - buffer_len) * T:
+                    tmp = i - 1
+                    break
+            new_quality = max(tmp,1)
+        else:
+            new_quality = ref
+    elif buffer_len >= (r + cu) :
+        new_quality = max(ref,quality)
+    else:
+        if ref < quality :
+            new_quality = quality
+        else:
+            new_quality = ref
+
+    dash.select(new_quality)
 
 def Tick(dash):
     dash.tick()
     if dash.check() == True:
         dash.get_throughput()
         return
+    algorithm2(dash)
+    #BBA(dash)
     #algorithm1(dash)
-    BBA(dash)
 
 if __name__ == "__main__":
     mpd_path = sys.argv[1]
