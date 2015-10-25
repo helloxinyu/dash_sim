@@ -30,11 +30,14 @@ class Dash:
         self.finished = 0
         self.max_buffer = 40
         self.throughput = netspeed.Throughput(log_dir)
+        self.ave_bitrate = 0
+        self.total_bitrate = 0
 
     def __del__(self):
         self.log("Finished!")
         self.log("Switch count: " + str(self.switch_count))
         self.log("Rebuffer count: " + str(self.buffer_empty_count))
+        self.log("Average bitrate: " + str(self.ave_bitrate))
         self.fp.close()
     
     def tick(self):
@@ -109,9 +112,11 @@ class Dash:
         self.quality = rate
         if rate < 100:
             rate = self.mpd["bitrates"][rate - 1]
-        
+
         self.last_bitrate = self.bitrate
         self.bitrate = rate
+        self.total_bitrate = self.total_bitrate + rate
+        self.ave_bitrate = self.total_bitrate / self.chunk_index
         self.log("Begin Download: " + str(self.chunk_index) + ", bitrate: " + str(self.bitrate) + ", quality: " + str(self.quality)  )
         if (self.last_bitrate != self.bitrate):
             self.switch_count = self.switch_count + 1

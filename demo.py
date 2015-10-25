@@ -160,7 +160,52 @@ def PBAC(dash):
         else:
             new_quality = ref
     elif buffer_len >= (r + cu) :
+        #new_quality = max_quality
         new_quality = max(ref,quality)
+    else:
+        if ref < quality :
+            new_quality = quality
+        else:
+            buffergap = duration * (T/next_chunks_size[ref]-1)
+            bufferemp = max_buffer - buffer_len
+            if buffergap > 0.15 * bufferemp:
+                new_quality = ref
+            else:
+                new_quality = ref - 1
+
+    dash.select(new_quality)
+
+def PBAC2(dash):
+    max_buffer = dash.max_buffer
+    r = max_buffer * 0.3
+    cu = max_buffer * (0.9 - 0.3)
+    T = dash.get_throughput()
+    quality = dash.quality
+    buffer_len = dash.buffer_len
+    new_quality = quality
+    max_quality = len(dash.mpd["bitrates"])
+    next_chunks_size = dash.get_chunks_size()
+    duration = dash.segment_len
+
+    ref = 1
+    for i in range(1, max_quality):
+        if next_chunks_size[i] / duration > T:
+            ref = i - 1
+            break
+    
+    if buffer_len <= r :
+        ref = max(ref-1,1)
+        if ref < quality:
+            for i in range(1, max_quality):
+                if next_chunks_size[i] > (duration - buffer_len) * T:
+                    tmp = i - 1
+                    break
+            new_quality = max(tmp,1)
+        else:
+            new_quality = ref
+    elif buffer_len >= (r + cu) :
+        new_quality = max_quality
+        #new_quality = max(ref,quality)
     else:
         if ref < quality :
             new_quality = quality
@@ -179,10 +224,11 @@ def Tick(dash):
     if dash.check() == True:
         dash.get_throughput()
         return
-    BBA(dash)
+    #BBA(dash)
     #algorithm1(dash)
     #algorithm2(dash)
     #PBAC(dash)
+    PBAC2(dash)
     
 if __name__ == "__main__":
     mpd_path = sys.argv[1]
