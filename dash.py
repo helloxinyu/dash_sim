@@ -34,6 +34,7 @@ class Dash:
         self.throughput = netspeed.Throughput(log_dir)
         self.ave_bitrate = 0
         self.total_bitrate = 0
+        self.dltime = [0, 0]
 
     def __del__(self):
         self.log("Finished!")
@@ -55,7 +56,7 @@ class Dash:
        
         if self.buffer_len <= 0:
             self.buffer_len = 0
-            self.log("Buffer Dry Out!")
+        #    self.log("Buffer Dry Out!")
             self.isempty = 1
         else:
             self.isempty = 0
@@ -71,11 +72,13 @@ class Dash:
             #print self.chunk_downloaded, self.chunk_size
             if self.chunk_downloaded >= self.chunk_size:
                 self.isdownloading = 0
-                self.log(str(self.chunk_index) + " Downloaded!")
+                self.dltime[self.chunk_index] = self.time - self.dltime[self.chunk_index]
+                #self.log("Download time " + str(self.dltime[self.chunk_index]))
+                #self.log(str(self.chunk_index) + " Downloaded!")
                 self.chunk_index = self.chunk_index + 1
                 self.chunk_downloaded = 0
                 self.buffer_len = self.buffer_len + self.segment_len
-                self.log("Buffer Level: " + str(self.buffer_len))
+                #self.log("Buffer Level: " + str(self.buffer_len))
                 self.can_download = 0
             else:
                 #pass
@@ -97,7 +100,7 @@ class Dash:
     
     def check(self):
         if self.finished == 1:
-            self.log("Finished!")
+            #self.log("Finished!")
             exit()
         if self.isdownloading == 1:
             return True
@@ -120,10 +123,11 @@ class Dash:
         self.bitrate = rate
         self.total_bitrate = self.total_bitrate + rate
         self.ave_bitrate = self.total_bitrate / self.chunk_index
-        self.log("Begin Download: " + str(self.chunk_index) + ", bitrate: " + str(self.bitrate) + ", quality: " + str(self.quality)  )
+        #self.log("Begin Download: " + str(self.chunk_index) + ", bitrate: " + str(self.bitrate) + ", quality: " + str(self.quality)  )
+        self.dltime.append(self.time)
         if (self.last_bitrate != self.bitrate):
             self.switch_count = self.switch_count + 1
-            self.log(str(self.chunk_index) + "Rate switched!")
+            #self.log(str(self.chunk_index) + "Rate switched!")
         #print rate, self.chunk_index,len( self.mpd[rate] )
         self.chunk_size = self.mpd[rate][self.chunk_index]
         self.isdownloading = 1        

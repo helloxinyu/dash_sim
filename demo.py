@@ -13,9 +13,9 @@ def Init(dash):
     while init_size > 0:
         init_size = init_size - dash.sim_inteval * dash.get_throughput()
         dash.time = dash.time + dash.sim_inteval
-    dash.log(str(1) + " Downloaded!")
+    #dash.log(str(1) + " Downloaded!")
     dash.buffer_len = dash.segment_len
-    dash.log("Buffer Level: " + str(dash.buffer_len))
+    #dash.log("Buffer Level: " + str(dash.buffer_len))
     dash.chunk_index = dash.chunk_index + 1
     dash.select(1)
 
@@ -36,6 +36,7 @@ def BBA(dash):
     buffer_len = dash.buffer_len
     new_quality = quality
     max_quality = len(dash.mpd["bitrates"])
+   
     
     quality_plus = quality
     quality_minus = quality
@@ -75,7 +76,18 @@ def BBA1(dash):
     buffer_len = dash.buffer_len
     new_quality = quality
     max_quality = len(dash.mpd["bitrates"])
-    
+    last_chunk_index = (dash.chunk_index - 1)
+    last_dltime = dash.dltime[last_chunk_index]
+    duration = dash.segment_len
+
+    r = r + (last_dltime - duration)
+    if r < 2 * duration :
+        r = 2 * duration
+    elif r > 0.5 * max_buffer :
+        r = 0.5 * max_buffer
+    dash.r = r
+
+
     quality_plus = quality
     quality_minus = quality
     if quality > max_quality:
@@ -158,7 +170,7 @@ def algorithm2(dash):
             for i in range(1, max_quality):
                 if next_chunks_size[i] > (duration - buffer_len) * T:
                     tmp = i - 1
-                    break
+                    breakzo
             new_quality = max(tmp,1)
         else:
             new_quality = ref
@@ -265,10 +277,11 @@ def Tick(dash):
     if dash.check() == True:
         dash.get_throughput()
         return
-    BBA(dash)
+    #BBA(dash)
+    #BBA1(dash)
     #algorithm1(dash)
     #algorithm2(dash)
-    #PBAC(dash)
+    PBAC(dash)
     #PBAC2(dash)
     
 if __name__ == "__main__":
