@@ -115,6 +115,80 @@ def BBA1(dash):
         
     dash.select(new_quality)
 
+def BBA2(dash):
+    max_buffer = dash.max_buffer
+    #r = max_buffer * 0.3
+    #cu = max_buffer * (0.9 - 0.3)
+    r = dash.r
+    cu = dash.cu
+    T = dash.get_throughput()
+    quality = dash.quality
+    buffer_len = dash.buffer_len
+    new_quality = quality
+    new_quality_startup = 1
+    max_quality = len(dash.mpd["bitrates"])
+    last_chunk_index = (dash.chunk_index - 1)
+    last_dltime = dash.dltime[last_chunk_index]
+    duration = dash.segment_len
+    last_buffer_len = dash.last_buffer_len
+
+
+    r = r + (last_dltime - duration)
+    if r < 2 * duration :
+        r = 2 * duration
+    elif r > 0.5 * max_buffer :
+        r = 0.5 * max_buffer
+    dash.r = r
+
+    if buffer_len < last_buffer_len :
+        dash.startup = 0
+
+    if dash.startup == 1 :
+        if buffer_len < r :
+            if duration > dash.bba2_threshold * last_dltime:
+                new_quality_startup = quality + 1
+                dash.bba2_threshold = dash.bba2_threshold - 1
+            else:
+                new_quality_startup = quality
+        else:
+            dash.bba2_threshold = 2
+            if duration > dash.bba2_threshold * last_dltime:
+                new_quality_startup = quality + 1
+            else:
+                new_quality_startup = quality      
+
+    quality_plus = quality
+    quality_minus = quality
+    if quality > max_quality:
+        quality_plus = max_quality
+    else:
+        quality_plus = quality + 1
+    
+    if quality <= 1 :
+        quality_minus = 1
+    else:
+        quality_minus = quality - 1
+
+    if buffer_len <= r :
+        new_quality = 1
+    elif buffer_len >= (r + cu) :
+        new_quality = max_quality
+    
+    tmp = 1 + (buffer_len - r) * (max_quality - 1) / cu
+    if tmp >= quality_plus :
+        new_quality = math.floor(tmp)
+    elif tmp <= quality_minus:
+        new_quality = math.ceil(tmp)
+    else:
+        new_quality = quality
+
+    if new_quality > new_quality_startup :
+        dash.startup = 0
+    else:
+        new_quality = new_quality_startup
+            
+    dash.select(new_quality)
+
 def algorithm1(dash):
     max_buffer = dash.max_buffer
     r = max_buffer * 0.3
@@ -279,9 +353,10 @@ def Tick(dash):
         return
     #BBA(dash)
     #BBA1(dash)
+    BBA2(dash)
     #algorithm1(dash)
     #algorithm2(dash)
-    PBAC(dash)
+    #PBAC(dash)
     #PBAC2(dash)
     
 if __name__ == "__main__":

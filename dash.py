@@ -35,6 +35,9 @@ class Dash:
         self.ave_bitrate = 0
         self.total_bitrate = 0
         self.dltime = [0, 0]
+        self.startup = 1
+        self.last_buffer_len = 0
+        self.bba2_threshold = 8
 
     def __del__(self):
         self.log("Finished!")
@@ -130,6 +133,7 @@ class Dash:
             #self.log(str(self.chunk_index) + "Rate switched!")
         #print rate, self.chunk_index,len( self.mpd[rate] )
         self.chunk_size = self.mpd[rate][self.chunk_index]
+        self.last_buffer_len = self.buffer_len
         self.isdownloading = 1        
 
     def get_throughput(self):
