@@ -29,6 +29,8 @@ class Dash:
         self.sim_inteval = 0.1
         self.finished = 0
         self.max_buffer = 40
+        self.r = self.max_buffer * 0.3
+        self.cu = self. max_buffer * (0.9 - 0.3)
         self.throughput = netspeed.Throughput(log_dir)
         self.ave_bitrate = 0
         self.total_bitrate = 0
@@ -45,7 +47,8 @@ class Dash:
         self.time = self.time + self.sim_inteval
         self.buffer_len = self.buffer_len - self.sim_inteval
         self.last_isempty = self.isempty
-            
+        #self.log("T " + str(self.netspeed))
+
         if self.buffer_len >= self.max_buffer - self.segment_len:
             #self.log("Sleep " + str(self.sim_inteval) + 's')
             return
@@ -127,7 +130,10 @@ class Dash:
 
     def get_throughput(self):
         self.last_netspeed = self.netspeed
-        self.netspeed = self.throughput.get_speed()
+        if ((self.time % 1) < 0.05 or (self.time % 1) > 0.95):
+            self.netspeed = self.throughput.get_speed()
+        else:
+            self.netspeed = self.netspeed
         return self.netspeed
 
     def get_chunks_size(self):
